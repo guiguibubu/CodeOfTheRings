@@ -1,10 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.IO;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Text;
 using System.Diagnostics;
+using System.Linq;
+using System;
+using System.Collections.Generic;
+using System.Collections;
 
 /**
  * Auto-generated code below aims at helping you parse
@@ -24,7 +23,6 @@ class Player
     private const char ACTION_LETTER_PREV = '-';
 
     private const int NB_ZONES = 30;
-    private static readonly char[] FORREST_STATE = new string(' ', NB_ZONES).ToArray();
 
     static void Main(string[] args)
     {
@@ -34,81 +32,34 @@ class Player
 
         try
         {
-            Console.Error.WriteLine($"A_INT_VALUE = {A_INT_VALUE}");
-            Console.Error.WriteLine($"Z_INT_VALUE = {Z_INT_VALUE}");
-            Console.Error.WriteLine($"SPACE_INT_VALUE_HAUT = {SPACE_INT_VALUE_HAUT}");
-            Console.Error.WriteLine($"SPACE_INT_VALUE_BAS = {SPACE_INT_VALUE_BAS}");
-
             string magicPhrase = Console.ReadLine()!;
             StringBuilder actionCommands = new StringBuilder();
 
-            char[] magicPhraseArray = magicPhrase.ToArray();
-            int currentPosition = 0;
-            int currentLetterIndex = 0;
-            foreach (char letter in magicPhraseArray)
+            Queue<char> remainingMagicPhrase = new Queue<char>(magicPhrase);
+
+            Foret foret = new Foret(NB_ZONES);
+            NbActionAnalyzer nbActionAnalyzer = new NbActionAnalyzer(foret, remainingMagicPhrase);
+
+            while (remainingMagicPhrase.Any())
             {
-                char currentLetter = FORREST_STATE[currentPosition];
-                Console.Error.Write($"l='{letter}'");
+                Console.Error.Write($"pos='{foret.CurrentIndex}'");
                 Console.Error.Write(";");
-                Console.Error.Write($"cP={currentPosition}");
-                Console.Error.Write(";");
-                Console.Error.Write($"cL='{currentLetter}'");
-                Console.Error.Write(";");
-                Console.Error.Write($"F_S=[{string.Join(',', FORREST_STATE)}]");
+                Console.Error.Write($"F_S={foret}");
                 Console.Error.Write(";");
 
-                List<ActionSequence> actionSequences = new List<ActionSequence>();
-
-                bool letterSpace = letter == ' ';
-                bool currentLetterSpace = currentLetter == ' ';
-                bool letterEqualCurrentLetter = letter == currentLetter;
-                bool moveNext = !letterEqualCurrentLetter && (letterSpace || (!currentLetterSpace && !letterEqualCurrentLetter));
-                Console.Error.Write($"mN={moveNext}");
-                Console.Error.Write(";");
-
-                // Move Action
-                if (moveNext)
-                {
-                    actionSequences.Add(GetActionMoveNext());
-                    bool endForrest = currentPosition == NB_ZONES - 1;
-                    currentPosition = (!endForrest) ? currentPosition + 1 : 0;
-                    currentLetter = FORREST_STATE[currentPosition];
-                    currentLetterSpace = currentLetter == ' ';
-                    // Reset if necessary
-                    if (endForrest)
-                    {
-                        Console.Error.Write($"eF={endForrest}");
-                        Console.Error.Write(";");
-                        actionSequences.Add(GetActionReset(currentLetter));
-                    }
-                }
-
-                // Select letter action
-                bool hasToSelectLetter = !letterSpace && (currentLetterSpace || moveNext);
-                Console.Error.Write($"sL={hasToSelectLetter}");
-                Console.Error.Write(";");
-                if (hasToSelectLetter)
-                {
-                    actionSequences.Add(GetActionLetter(letter));
-                }
+                List<ActionSequence> actionSequences = nbActionAnalyzer.GetListeMinimumActionToDo();
+                foret.Update(actionSequences);
 
                 actionSequences.Add(GetActionTake());
-
-                // Save State
-                if (!letterSpace)
-                {
-                    FORREST_STATE[currentPosition] = letter;
-                }
 
                 // Transorm action to string
                 foreach (ActionSequence actionSequence in actionSequences)
                 {
-                    string actionSequenceStr = new string(actionSequence.ActionName, actionSequence.ActionCount);
+                    string actionSequenceStr = actionSequence.ToString();
                     Console.Error.Write(actionSequenceStr);
                     actionCommands.Append(actionSequenceStr);
                 }
 
-                currentLetterIndex++;
                 Console.Error.WriteLine();
             }
             // Write an action using Console.WriteLine()
@@ -124,29 +75,16 @@ class Player
         }
     }
 
-    private static ActionSequence GetActionLetter(char letter)
+    private static ActionSequence GetActionLetter(char source, char target)
     {
-        int charIntValue = (int)letter;
-        int nbPlus = 1 + (charIntValue - A_INT_VALUE);
-        int nbMoins = 1 + (Z_INT_VALUE - charIntValue);
+        int nbPlus = DistanceLettersAscendant(source, target);
+        int nbMoins = DistanceLettersDescendant(source, target);
 
         char action = (nbPlus <= nbMoins) ? ACTION_LETTER_NEXT : ACTION_LETTER_PREV;
         int nbAction = Math.Min(nbPlus, nbMoins);
 
         if (nbAction < 0)
-            Console.Error.WriteLine($"Error GetActionLetter nbAction < 0 {nbAction}");
-        return new ActionSequence(action, nbAction);
-    }
-
-    private static ActionSequence GetActionReset(char currentLetter)
-    {
-        int charIntValue = (int)currentLetter;
-        int nbPlus = DistanceInt(SPACE_INT_VALUE_HAUT, charIntValue);
-        int nbMoins = DistanceInt(charIntValue, SPACE_INT_VALUE_BAS);
-
-        char action = (nbPlus <= nbMoins) ? ACTION_LETTER_NEXT : ACTION_LETTER_PREV;
-        int nbAction = Math.Min(nbPlus, nbMoins);
-
+            throw new ApplicationException($"Error GetActionLetter nbAction < 0 {nbAction}");
         return new ActionSequence(action, nbAction);
     }
 
@@ -155,9 +93,10 @@ class Player
         return new ActionSequence(ACTION_TAKE, 1);
     }
 
-    private static ActionSequence GetActionMoveNext()
+    private static ActionSequence GetActionMove(int source, int target)
     {
-        return new ActionSequence(ACTION_MOVE_NEXT, 1);
+        char action = (target >= source) ? ACTION_MOVE_NEXT : ACTION_MOVE_PREV;
+        return new ActionSequence(action, DistanceInt(source, target));
     }
 
     private static int DistanceInt(int a, int b)
@@ -165,12 +104,30 @@ class Player
         return Math.Abs(a - b);
     }
 
-    private static int DistanceLetters(char a, char b)
+    private static int DistanceLettersAscendant(char source, char target)
     {
-        int charAIntValue = (int)a;
-        int charBIntValue = (int)b;
+        int sourceIntValue = (source == ' ') ? SPACE_INT_VALUE_BAS : (int)source;
+        int targetIntValue = (target == ' ') ? SPACE_INT_VALUE_HAUT : (int)target;
 
-        return Math.Abs(charAIntValue - charBIntValue);
+        bool lettreOrdreAscendant = targetIntValue >= sourceIntValue;
+
+        if (lettreOrdreAscendant)
+            return DistanceInt(sourceIntValue, targetIntValue);
+        else
+            return DistanceInt(sourceIntValue, SPACE_INT_VALUE_HAUT) + DistanceInt(SPACE_INT_VALUE_BAS, targetIntValue);
+    }
+
+    private static int DistanceLettersDescendant(char source, char target)
+    {
+        int sourceIntValue = (source == ' ') ? SPACE_INT_VALUE_BAS : (int)source;
+        int targetIntValue = (target == ' ') ? SPACE_INT_VALUE_HAUT : (int)target;
+
+        bool lettreOrdreDescendant = targetIntValue <= sourceIntValue;
+
+        if (lettreOrdreDescendant)
+            return DistanceInt(sourceIntValue, targetIntValue);
+        else
+            return DistanceInt(sourceIntValue, SPACE_INT_VALUE_BAS) + DistanceInt(SPACE_INT_VALUE_HAUT, targetIntValue);
     }
 
     class ActionSequence
@@ -180,8 +137,166 @@ class Player
 
         public ActionSequence(char action, int count)
         {
+            if (count < 0)
+                throw new ArgumentOutOfRangeException(nameof(count), "Must be positive");
             ActionName = action;
             ActionCount = count;
+        }
+
+        public override string ToString()
+        {
+            return new string(ActionName, ActionCount);
+        }
+    }
+
+    class NbActionAnalyzer
+    {
+        private readonly Foret _foret;
+        private readonly Queue<char> _remainingMagicPhrase;
+
+        private int nbLetterConsumned;
+
+        private List<ActionSequence> _listeMinimumActionToDo { get; set; }
+
+        public NbActionAnalyzer(Foret foret, Queue<char> remainingMagicPhrase)
+        {
+            _foret = foret;
+            _remainingMagicPhrase = remainingMagicPhrase;
+            _listeMinimumActionToDo = new List<ActionSequence>();
+            nbLetterConsumned = 0;
+        }
+
+        private void Update(char letter)
+        {
+            int minTotalAction = int.MaxValue;
+            for (int i = 0; i < _foret.Size; i++)
+            {
+                ActionSequence actionMove = GetActionMove(_foret.CurrentIndex, i);
+                ActionSequence actionLetter = GetActionLetter(_foret[i], letter);
+
+                List<ActionSequence> listeAction = new List<ActionSequence>();
+                if (actionMove.ActionCount > 0)
+                    listeAction.Add(actionMove);
+                if(actionLetter.ActionCount > 0)
+                    listeAction.Add(actionLetter);
+
+                int totalAction = listeAction.Sum(action => action.ActionCount);
+                if (totalAction < minTotalAction)
+                {
+                    minTotalAction = totalAction;
+                    _listeMinimumActionToDo = listeAction;
+                }
+            }
+        }
+
+        public List<ActionSequence> GetListeMinimumActionToDo()
+        {
+            _listeMinimumActionToDo.Clear();
+
+            Update(_remainingMagicPhrase.Dequeue());
+            return _listeMinimumActionToDo;
+        }
+    }
+
+    class Foret
+    {
+        public readonly int Size;
+        private readonly char[] STATE;
+
+        public int CurrentIndex { get; private set; }
+        public char CurrentLetter { get { return this[CurrentIndex]; } }
+
+        public Foret(int size)
+        {
+            CurrentIndex = 0;
+            Size = size;
+            STATE = new string(' ', size).ToArray();
+        }
+
+        public char this[int index]
+        {
+            get { return STATE[index]; }
+        }
+
+        public void Update(IEnumerable<ActionSequence> actionSequences)
+        {
+            foreach(ActionSequence actionSequence in actionSequences)
+                Update(actionSequence);
+        }
+
+        public void Update(ActionSequence actionSequence)
+        {
+            string commands = actionSequence.ToString();
+
+            foreach (char command in commands)
+            {
+                switch (command)
+                {
+                    case ACTION_MOVE_NEXT:
+                        MoveNext(); break;
+                    case ACTION_MOVE_PREV:
+                        MovePrevious(); break;
+                    case ACTION_LETTER_NEXT:
+                        MoveLetterNext(); break;
+                    case ACTION_LETTER_PREV:
+                        MoveLetterPrevious(); break;
+                    default:
+                        throw new ApplicationException($"Unknown action '{command}'");
+                }
+            }
+        }
+
+        private void MoveNext()
+        {
+            if (CurrentIndex >= Size - 1)
+                CurrentIndex = 0;
+            else
+                CurrentIndex++;
+        }
+
+        private void MovePrevious()
+        {
+            if (CurrentIndex <= 0)
+                CurrentIndex = Size - 1;
+            else
+                CurrentIndex--;
+        }
+
+        private void MoveLetterNext()
+        {
+            char currentLetter = STATE[CurrentIndex];
+            char newLetter;
+            bool isSpace = currentLetter == ' ';
+            bool isLastLetter = currentLetter == 'Z';
+            if (isSpace)
+                newLetter = 'A';
+            else if (isLastLetter)
+                newLetter = ' ';
+            else
+                newLetter = (char)(((int)currentLetter) + 1);
+
+            STATE[CurrentIndex] = newLetter;
+        }
+
+        private void MoveLetterPrevious()
+        {
+            char currentLetter = STATE[CurrentIndex];
+            char newLetter;
+            bool isSpace = currentLetter == ' ';
+            bool isFirstLetter = currentLetter == 'A';
+            if (isSpace)
+                newLetter = 'Z';
+            else if (isFirstLetter)
+                newLetter = ' ';
+            else
+                newLetter = (char)(((int)currentLetter) - 1);
+
+            STATE[CurrentIndex] = newLetter;
+        }
+
+        public override string ToString()
+        {
+            return $"[{string.Join(',', STATE)}]";
         }
     }
 }
