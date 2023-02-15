@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Player", "Player\Player.csproj", "{CEEA561D-08D9-44C9-8737-4FDD802B6A9D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Engine", "Engine\Engine.csproj", "{51EB741A-5207-4A4F-8CDC-B2155C5EFF51}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CEEA561D-08D9-44C9-8737-4FDD802B6A9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEEA561D-08D9-44C9-8737-4FDD802B6A9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEEA561D-08D9-44C9-8737-4FDD802B6A9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEEA561D-08D9-44C9-8737-4FDD802B6A9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51EB741A-5207-4A4F-8CDC-B2155C5EFF51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51EB741A-5207-4A4F-8CDC-B2155C5EFF51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51EB741A-5207-4A4F-8CDC-B2155C5EFF51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51EB741A-5207-4A4F-8CDC-B2155C5EFF51}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {175B9C5F-DA75-4A4C-80C6-9E929B2A3BB4}
+	EndGlobalSection
+EndGlobal
